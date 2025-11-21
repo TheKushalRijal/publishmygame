@@ -31,6 +31,8 @@ export default class MainScene extends Phaser.Scene {
     this.backgroundSystem = new BackgroundSystem(this);
     this.backgroundSystem.preload();
     this.load.image('balloon', 'images/baloon.png');
+      this.load.image('arrow', 'images/Arrowimage.png');
+
   }
 
   create(): void {

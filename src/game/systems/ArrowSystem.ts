@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import Balloon from '../entities/Balloon';
 
 interface Arrow {
-  sprite: Phaser.GameObjects.Arc;
+  sprite: Phaser.GameObjects.Image;
+
   velocity: { x: number; y: number };
 }
 
@@ -27,8 +28,13 @@ export default class ArrowSystem {
       y: Math.sin(angle) * this.ARROW_SPEED,
     };
 
-    const arrowSprite = this.scene.add.circle(from.x, from.y, 5, 0xffeb3b);
+    const arrowSprite = this.scene.add.image(from.x, from.y, 'arrow');
+arrowSprite.setScale(0.05); // adjust size
+arrowSprite.setRotation(angle); // point toward target
+
     this.arrows.push({ sprite: arrowSprite, velocity });
+
+
   }
 
   update(delta: number, balloons: Balloon[], onHit: (balloon: Balloon) => void): void {

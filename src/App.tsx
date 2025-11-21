@@ -10,9 +10,10 @@ function App() {
       <div className="max-w-6xl w-full flex-grow relative">
         {/* Game container */}
         <div
-          id="game-container"
-          className="border-4 border-gray-700 rounded-lg overflow-hidden shadow-2xl"
-        />
+  id="game-container"
+  className="w-[800px] h-[600px] border-4 border-gray-700 rounded-lg overflow-hidden shadow-2xl"
+></div>
+
 
         {/* UI overlay */}
         <GameUI

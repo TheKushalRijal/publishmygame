@@ -3,10 +3,18 @@ import MainScene from './scenes/MainScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
+
+  /* 🔥 Let Phaser RESIZE dynamically inside iframe */
+  scale: {
+  mode: Phaser.Scale.FIT,
+  autoCenter: Phaser.Scale.CENTER_BOTH,
   width: 800,
   height: 600,
   parent: 'game-container',
+},
+
   backgroundColor: '#1a1a2e',
+
   physics: {
     default: 'arcade',
     arcade: {
@@ -14,16 +22,17 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
+
   scene: [MainScene],
 };
 
 export const PLATFORM_POSITIONS = [
- { x: 150, y: 150 },
-      { x: 650, y: 150 },
-      { x: 250, y: 300 },
-      { x: 550, y: 300 },
-      { x: 150, y: 450 },
-      { x: 650, y: 450 }
+  { x: 150, y: 150 },
+  { x: 650, y: 150 },
+  { x: 250, y: 300 },
+  { x: 550, y: 300 },
+  { x: 150, y: 450 },
+  { x: 650, y: 450 },
 ];
 
 export interface LevelConfig {
@@ -33,25 +42,18 @@ export interface LevelConfig {
   sonarRadius: number;
 }
 
-
-
 export function getLevelConfig(level: number): LevelConfig {
-  const baseBalloons = 3; // Level 1 balloons
-  const baseArrows = 50;   // Level 1 arrows
-  const baseSonar = 200;  // Initial sonar radius
+  const baseBalloons = 3;
+  const baseArrows = 500;
+  const baseSonar = 200;
 
   return {
     level,
-    balloonCount: baseBalloons + (level - 1),       // +1 balloon per level
-    arrowCount: baseArrows + (level - 1) * 2,       // +2 arrows per level
-    sonarRadius: Math.max(50, baseSonar - (level - 1) * 10), // decrease slightly
+    balloonCount: baseBalloons + (level - 1),
+    arrowCount: baseArrows + (level - 1) * 2,
+    sonarRadius: Math.max(50, baseSonar - (level - 1) * 10),
   };
 }
-
-
-
-
-
 
 export const COLORS = {
   PLAYER: 0xffd700,
