@@ -44,7 +44,7 @@ export interface LevelConfig {
 
 export function getLevelConfig(level: number): LevelConfig {
   const baseBalloons = 3;
-  const baseArrows = 500;
+  const baseArrows = 8;
   const baseSonar = 200;
 
   return {
