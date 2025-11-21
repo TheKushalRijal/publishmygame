@@ -4,7 +4,7 @@ import Player from '../entities/Player';
 import Balloon from '../entities/Balloon';
 import ArrowSystem from '../systems/ArrowSystem';
 import SonarSystem from '../systems/SonarSystem';
-import FlareSystem from '../systems/FlareSystem';
+import FlareSystem from '../systems/FlareSystem'; // Already imported
 import LevelManager from '../systems/LevelManager';
 import BackgroundSystem from '../systems/BackgroundSystem';
 
@@ -14,7 +14,7 @@ export default class MainScene extends Phaser.Scene {
   private balloons: Balloon[] = [];
   private arrowSystem!: ArrowSystem;
   private sonarSystem!: SonarSystem;
-  private flareSystem!: FlareSystem;
+  private flareSystem!: FlareSystem; // Already declared
   public levelManager!: LevelManager;
   private backgroundSystem!: BackgroundSystem;
 
@@ -31,22 +31,26 @@ export default class MainScene extends Phaser.Scene {
     this.backgroundSystem = new BackgroundSystem(this);
     this.backgroundSystem.preload();
     this.load.image('balloon', 'images/baloon.png');
-      this.load.image('arrow', 'images/Arrowimage.png');
+    this.load.image('arrow', 'images/Arrowimage.png');
+    this.load.audio('balloonPing', 'sounds/baloonsound.mp3');
+    this.load.audio('destroysound', 'sounds/explodesound.mp3');
 
   }
 
-  create(): void {
+
+   create(): void {
     this.createPlatforms();
     this.player = new Player(this, PLATFORM_POSITIONS[0].x, PLATFORM_POSITIONS[0].y - 20);
 
     this.arrowSystem = new ArrowSystem(this);
     this.sonarSystem = new SonarSystem(this);
-    this.flareSystem = new FlareSystem(this);
+    this.flareSystem = new FlareSystem(this); // Initialize FlareSystem
     this.levelManager = new LevelManager();
 
     this.setupInputHandlers();
     this.startLevel();
   }
+
 
   private createPlatforms(): void {
     PLATFORM_POSITIONS.forEach(pos => {
@@ -62,6 +66,10 @@ export default class MainScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-UP', () => this.player.moveUp(this.platforms));
     this.input.keyboard?.on('keydown-DOWN', () => this.player.moveDown(this.platforms));
+this.input.keyboard?.on('keydown-W', () => this.player.moveUp(this.platforms));
+this.input.keyboard?.on('keydown-S', () => this.player.moveDown(this.platforms));
+
+
 
     this.input.keyboard?.on('keydown-SPACE', () => {
       if (!this.levelActive) return;
@@ -98,9 +106,15 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  private handleBalloonHit(balloon: Balloon): void {
+   private handleBalloonHit(balloon: Balloon): void {
     const pos = balloon.getPosition();
+    
+    // Use the flare system when balloon is hit
     this.flareSystem.createFlare(pos.x, pos.y);
+    
+    // Optional: Add screen shake for more impact
+    this.flareSystem.addScreenShake(0.008);
+    
     balloon.destroy();
     this.levelManager.balloonPopped();
     this.updateUI();
@@ -109,6 +123,7 @@ export default class MainScene extends Phaser.Scene {
       this.handleLevelComplete();
     }
   }
+
 
   private handleLevelComplete(): void {
   this.levelActive = false;
@@ -144,7 +159,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private clearLevel(): void {
-    this.balloons.forEach(b => b.destroy());
+this.balloons.forEach(b => b.destroy(false)); // NO SOUND
     this.balloons = [];
     this.arrowSystem.clear();
   }
@@ -157,15 +172,65 @@ export default class MainScene extends Phaser.Scene {
     });
 
     if (this.levelManager.isLevelFailed() && this.levelActive) {
-      this.handleLevelFailed();
-    }
+this.time.delayedCall(1000, () => {
+  this.handleLevelFailed();
+});
+
+
+}
   }
 
-  update(_time: number, delta: number): void {
-    if (this.levelActive) {
-      this.arrowSystem.update(delta, this.balloons, this.handleBalloonHit.bind(this));
+
+
+private checkPlayerBalloonCollision(): void {
+  const playerPos = this.player.getPosition();
+  const detectionRadius = 40;
+
+  this.balloons.forEach(balloon => {
+    const bpos = balloon.getPosition();
+    const dx = playerPos.x - bpos.x;
+    const dy = playerPos.y - bpos.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance <= detectionRadius && this.levelActive) {
+      this.levelActive = false; // stop arrow updates & movement
+
+      // STEP 1: Keep balloon visible for 0.5 sec
+      this.time.delayedCall(500, () => {
+        
+        // STEP 2: Spawn flare effect at balloon position
+        const pos = balloon.getPosition();
+        this.flareSystem.createFlare(pos.x, pos.y);
+        this.flareSystem.addScreenShake(0.01);
+
+        // Remove balloon AFTER flare
+        balloon.destroy();
+
+        // STEP 3: After another short delay → Game Over
+        this.time.delayedCall(300, () => {
+          this.handleLevelFailed();
+        });
+
+      });
+
     }
+  });
+}
+
+
+
+
+
+
+  update(_time: number, delta: number): void {
+  if (this.levelActive) {
+    this.arrowSystem.update(delta, this.balloons, this.handleBalloonHit.bind(this));
+
+    // 👇 NEW: Check player-balloon collision
+    this.checkPlayerBalloonCollision();
   }
+}
+
 
   setUIUpdateCallback(callback: (data: { balloons: number; arrows: number; level: number; message?: string }) => void): void {
     this.onUIUpdate = callback;
@@ -173,5 +238,9 @@ export default class MainScene extends Phaser.Scene {
 
   setLevelEndCallback(callback: (success: boolean) => void): void {
     this.onLevelEnd = callback;
+  }
+   shutdown(): void {
+    // Clean up the flare system to prevent memory leaks
+    this.flareSystem.destroy();
   }
 }

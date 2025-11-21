@@ -33,6 +33,11 @@ export default class Player {
     return { x: this.sprite.x, y: this.sprite.y };
   }
 
+
+
+
+  
+
   destroy(): void {
     this.sprite.destroy();
   }

@@ -55,7 +55,7 @@ export default class SonarSystem {
         if (distance <= radius) {
           balloon.show();
           // Use one delayedCall per balloon, cancel any previous
-          this.scene.time.delayedCall(2000, () => {
+          this.scene.time.delayedCall(1800, () => {
             if (!balloon.isDestroyed()) balloon.hide();
           });
         }

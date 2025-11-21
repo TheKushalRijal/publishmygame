@@ -29,10 +29,16 @@ export default class Balloon {
   }
 
   show(): void {
-    if (!this.destroyed) {
-      this.sprite.setAlpha(1);
-    }
+  if (!this.destroyed) {
+    this.sprite.setAlpha(1);
+
+    // 🔊 Play sonar reveal sound
+    this.scene.sound.play('balloonPing', {
+      volume: 0.7
+    });
   }
+}
+
 
   hide(): void {
     if (!this.destroyed) {
@@ -44,11 +50,24 @@ export default class Balloon {
     return { x: this.sprite.x, y: this.sprite.y };
   }
 
-  destroy(): void {
-    this.destroyed = true;
-    this.sprite.destroy();
-    if (this.floatTween) this.floatTween.stop();
+ destroy(playSound: boolean = true): void {
+  if (this.destroyed) return;
+  this.destroyed = true;
+
+  if (playSound) {
+    this.scene.sound.play('destroysound', { volume: 0.7 });
   }
+
+  this.sprite.destroy();
+  if (this.floatTween) this.floatTween.stop();
+}
+
+
+
+
+
+
+  
 
   isDestroyed(): boolean {
     return this.destroyed;
