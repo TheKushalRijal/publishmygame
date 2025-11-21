@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PLATFORM_POSITIONS } from '../config';
+import { PLATFORM_POSITIONS, getLevelConfig } from '../config';
 import Player from '../entities/Player';
 import Balloon from '../entities/Balloon';
 import ArrowSystem from '../systems/ArrowSystem';
@@ -15,25 +15,25 @@ export default class MainScene extends Phaser.Scene {
   private arrowSystem!: ArrowSystem;
   private sonarSystem!: SonarSystem;
   private flareSystem!: FlareSystem;
-  private levelManager!: LevelManager;
+  public levelManager!: LevelManager;
   private backgroundSystem!: BackgroundSystem;
-  private onUIUpdate?: (data: { balloons: number; arrows: number; level: number }) => void;
+
+  private onUIUpdate?: (data: { balloons: number; arrows: number; level: number; message?: string }) => void;
   private onLevelEnd?: (success: boolean) => void;
+
+  private levelActive: boolean = true;
 
   constructor() {
     super({ key: 'MainScene' });
   }
 
-preload(): void {
-  this.backgroundSystem = new BackgroundSystem(this);
-  this.backgroundSystem.preload(); // load images
-   this.load.image('balloon', 'images/baloon.png');  // Replace with your actual image URL
-
-}
-
+  preload(): void {
+    this.backgroundSystem = new BackgroundSystem(this);
+    this.backgroundSystem.preload();
+    this.load.image('balloon', 'images/baloon.png');
+  }
 
   create(): void {
-    this.backgroundSystem = new BackgroundSystem(this);
     this.createPlatforms();
     this.player = new Player(this, PLATFORM_POSITIONS[0].x, PLATFORM_POSITIONS[0].y - 20);
 
@@ -47,58 +47,43 @@ preload(): void {
   }
 
   private createPlatforms(): void {
-    PLATFORM_POSITIONS.forEach((pos) => {
-      const platform = this.add.rectangle(pos.x, pos.y, 80, 10, 0x8b7355);
-      platform.setAlpha(0.3);
+    PLATFORM_POSITIONS.forEach(pos => {
+      const platform = this.add.rectangle(pos.x, pos.y, 80, 10, 0x8b7355).setAlpha(0.3);
       this.platforms.push(platform);
     });
   }
 
   private setupInputHandlers(): void {
     for (let i = 1; i <= 6; i++) {
-      this.input.keyboard?.on(`keydown-${i}`, () => {
-        this.player.teleportToPlatform(i - 1, this.platforms);
-      });
+      this.input.keyboard?.on(`keydown-${i}`, () => this.player.teleportToPlatform(i - 1, this.platforms));
     }
 
-    this.input.keyboard?.on('keydown-UP', () => {
-      this.player.moveUp(this.platforms);
-    });
-
-    this.input.keyboard?.on('keydown-DOWN', () => {
-      this.player.moveDown(this.platforms);
-    });
+    this.input.keyboard?.on('keydown-UP', () => this.player.moveUp(this.platforms));
+    this.input.keyboard?.on('keydown-DOWN', () => this.player.moveDown(this.platforms));
 
     this.input.keyboard?.on('keydown-SPACE', () => {
-      const config = this.levelManager.getLevelConfig();
-      this.sonarSystem.activate(
-        this.player.getPosition(),
-        this.balloons,
-        this.platforms,
-        config.sonarRadius
-      );
+      if (!this.levelActive) return;
+      const config = getLevelConfig(this.levelManager.getCurrentLevel() + 1);
+      this.sonarSystem.activate(this.player.getPosition(), this.balloons, this.platforms, config.sonarRadius);
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.levelManager.getArrowsLeft() > 0) {
-        this.levelManager.arrowShot();
-        this.arrowSystem.shoot(
-          this.player.getPosition(),
-          { x: pointer.x, y: pointer.y },
-          this.handleBalloonHit.bind(this)
-        );
-        this.updateUI();
-      }
+      if (!this.levelActive) return;
+      if (this.levelManager.getArrowsLeft() <= 0) return;
+
+      this.levelManager.arrowShot();
+      this.arrowSystem.shoot(this.player.getPosition(), { x: pointer.x, y: pointer.y }, this.handleBalloonHit.bind(this));
+      this.updateUI();
     });
   }
 
-  private startLevel(): void {
+  public startLevel(): void {
+    this.levelActive = true;
     this.clearLevel();
     this.levelManager.startLevel();
     this.spawnBalloons();
     this.updateUI();
     this.backgroundSystem.setBackground(this.levelManager.getCurrentLevel() + 1);
-
   }
 
   private spawnBalloons(): void {
@@ -124,23 +109,40 @@ preload(): void {
   }
 
   private handleLevelComplete(): void {
-    this.onLevelEnd?.(true);
-    this.time.delayedCall(2000, () => {
-      this.levelManager.nextLevel();
-      this.startLevel();
+  this.levelActive = false;
+
+  // Show "Room Cleared!" message in React UI
+  this.onUIUpdate?.({
+    balloons: this.levelManager.getBalloonsRemaining(),
+    arrows: this.levelManager.getArrowsLeft(),
+    level: this.levelManager.getCurrentLevel() + 1,
+    message: "Room Cleared!",
+  });
+
+  // Move to next level automatically after 2 seconds
+  this.time.delayedCall(2000, () => {
+    this.levelManager.nextLevel();
+
+    // Clear message before starting next level
+    this.onUIUpdate?.({
+      balloons: 0,
+      arrows: 0,
+      level: this.levelManager.getCurrentLevel() + 1,
+      message: "",
     });
-  }
+
+    this.startLevel();
+  });
+}
+
 
   private handleLevelFailed(): void {
-    this.onLevelEnd?.(false);
-    this.time.delayedCall(2000, () => {
-      this.levelManager.resetLevel();
-      this.startLevel();
-    });
+    this.levelActive = false;
+    this.onLevelEnd?.(false); // React overlay: Restart / New Game
   }
 
   private clearLevel(): void {
-    this.balloons.forEach((balloon) => balloon.destroy());
+    this.balloons.forEach(b => b.destroy());
     this.balloons = [];
     this.arrowSystem.clear();
   }
@@ -152,16 +154,18 @@ preload(): void {
       level: this.levelManager.getCurrentLevel() + 1,
     });
 
-    if (this.levelManager.isLevelFailed()) {
+    if (this.levelManager.isLevelFailed() && this.levelActive) {
       this.handleLevelFailed();
     }
   }
 
   update(_time: number, delta: number): void {
-    this.arrowSystem.update(delta, this.balloons, this.handleBalloonHit.bind(this));
+    if (this.levelActive) {
+      this.arrowSystem.update(delta, this.balloons, this.handleBalloonHit.bind(this));
+    }
   }
 
-  setUIUpdateCallback(callback: (data: { balloons: number; arrows: number; level: number }) => void): void {
+  setUIUpdateCallback(callback: (data: { balloons: number; arrows: number; level: number; message?: string }) => void): void {
     this.onUIUpdate = callback;
   }
 

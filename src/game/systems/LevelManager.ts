@@ -1,4 +1,5 @@
-import { LevelConfig, LEVEL_CONFIGS } from '../config';
+// LevelManager.ts
+import { LevelConfig, getLevelConfig } from "../config";
 
 export default class LevelManager {
   private currentLevel: number = 0;
@@ -10,16 +11,7 @@ export default class LevelManager {
   }
 
   getLevelConfig(): LevelConfig {
-    if (this.currentLevel < LEVEL_CONFIGS.length) {
-      return LEVEL_CONFIGS[this.currentLevel];
-    }
-    const lastConfig = LEVEL_CONFIGS[LEVEL_CONFIGS.length - 1];
-    return {
-      level: this.currentLevel + 1,
-      balloonCount: lastConfig.balloonCount + (this.currentLevel - LEVEL_CONFIGS.length + 1) * 2,
-      arrowCount: lastConfig.arrowCount + (this.currentLevel - LEVEL_CONFIGS.length + 1) * 2,
-      sonarRadius: Math.max(100, lastConfig.sonarRadius - 5),
-    };
+    return getLevelConfig(this.currentLevel + 1);
   }
 
   startLevel(): void {
@@ -58,6 +50,11 @@ export default class LevelManager {
   }
 
   resetLevel(): void {
+    this.startLevel();
+  }
+
+  resetGame(): void {
+    this.currentLevel = 0;
     this.startLevel();
   }
 }

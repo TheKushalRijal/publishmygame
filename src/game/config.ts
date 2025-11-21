@@ -33,13 +33,21 @@ export interface LevelConfig {
   sonarRadius: number;
 }
 
-export const LEVEL_CONFIGS: LevelConfig[] = [
-  { level: 1, balloonCount: 3, arrowCount: 500, sonarRadius: 200 },
-  { level: 2, balloonCount: 5, arrowCount: 7, sonarRadius: 180 },
-  { level: 3, balloonCount: 7, arrowCount: 9, sonarRadius: 160 },
-  { level: 4, balloonCount: 10, arrowCount: 12, sonarRadius: 150 },
-  { level: 5, balloonCount: 12, arrowCount: 15, sonarRadius: 140 },
-];
+
+
+export function getLevelConfig(level: number): LevelConfig {
+  const baseBalloons = 3; // Level 1 balloons
+  const baseArrows = 50;   // Level 1 arrows
+  const baseSonar = 200;  // Initial sonar radius
+
+  return {
+    level,
+    balloonCount: baseBalloons + (level - 1),       // +1 balloon per level
+    arrowCount: baseArrows + (level - 1) * 2,       // +2 arrows per level
+    sonarRadius: Math.max(50, baseSonar - (level - 1) * 10), // decrease slightly
+  };
+}
+
 
 
 

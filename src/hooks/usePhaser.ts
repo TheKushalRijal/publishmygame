@@ -7,6 +7,7 @@ interface GameState {
   balloons: number;
   arrows: number;
   level: number;
+  message?: string;
 }
 
 export default function usePhaser() {
@@ -15,8 +16,10 @@ export default function usePhaser() {
     balloons: 0,
     arrows: 0,
     level: 1,
+    message: '',
   });
-  const [message, setMessage] = useState('');
+
+  const [gameOver, setGameOver] = useState<{ message: string; levelFailed: boolean } | null>(null);
 
   useEffect(() => {
     if (!gameRef.current) {
@@ -24,21 +27,26 @@ export default function usePhaser() {
 
       gameRef.current.events.on('ready', () => {
         const scene = gameRef.current?.scene.getScene('MainScene') as MainScene;
-        if (scene) {
-          scene.setUIUpdateCallback((data) => {
-            setGameState(data);
-          });
+        if (!scene) return;
 
-          scene.setLevelEndCallback((success) => {
-            if (success) {
-              setMessage('Level Complete!');
-              setTimeout(() => setMessage(''), 2000);
-            } else {
-              setMessage('Out of Arrows - Try Again!');
-              setTimeout(() => setMessage(''), 2000);
-            }
-          });
-        }
+        // Update UI
+        scene.setUIUpdateCallback((data) => setGameState(data));
+
+        // Level end callback
+        scene.setLevelEndCallback((success) => {
+          if (success) {
+            // Room cleared message
+            setGameState((prev) => ({ ...prev, message: 'Room Cleared!' }));
+            setTimeout(() => {
+              setGameState((prev) => ({ ...prev, message: '' }));
+              scene.levelManager.nextLevel();
+              scene.startLevel();
+            }, 1500); // show message 1.5s
+          } else {
+            // Out of arrows
+            setGameOver({ message: 'Out of Arrows! Try Again?', levelFailed: true });
+          }
+        });
       });
     }
 
@@ -50,5 +58,22 @@ export default function usePhaser() {
     };
   }, []);
 
-  return { gameState, message };
+  const restartLevel = () => {
+    const scene = gameRef.current?.scene.getScene('MainScene') as MainScene;
+    if (!scene) return;
+
+    scene.startLevel();
+    setGameOver(null);
+  };
+
+  const newGame = () => {
+    const scene = gameRef.current?.scene.getScene('MainScene') as MainScene;
+    if (!scene) return;
+
+    scene.levelManager.resetGame();
+    scene.startLevel();
+    setGameOver(null);
+  };
+
+  return { gameState, gameOver, restartLevel, newGame };
 }
