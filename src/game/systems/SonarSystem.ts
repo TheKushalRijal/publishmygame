@@ -64,17 +64,18 @@ export default class SonarSystem {
 
     // Reveal platforms safely
     platforms.forEach((platform) => {
-      const dx = platform.getX() - position.x;
-      const dy = platform.getY() - position.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+  const dx = platform.x - position.x; // <-- use .x
+  const dy = platform.y - position.y; // <-- use .y
+  const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance <= radius) {
-        platform.show();
-        this.scene.time.delayedCall(2000, () => {
-          platform.hide();
-        });
-      }
+  if (distance <= radius) {
+    platform.show();
+    this.scene.time.delayedCall(2000, () => {
+      platform.hide();
     });
+  }
+});
+
   }
 
   cleanup(): void {

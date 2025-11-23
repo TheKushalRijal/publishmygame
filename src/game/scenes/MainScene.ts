@@ -35,16 +35,46 @@ export default class MainScene extends Phaser.Scene {
     this.load.audio('balloonPing', 'sounds/baloonsound.mp3');
     this.load.audio('destroysound', 'sounds/explodesound.mp3');
 
+    this.load.image('player_up', 'images/playerup.png');
+    this.load.image('player_down', 'images/down.png');
+    this.load.image('player_left', 'images/left.png');
+    this.load.image('player_right', 'images/player.png');
+
   }
 
 
    create(): void {
     this.createPlatforms();
-    this.player = new Player(this, PLATFORM_POSITIONS[0].x, PLATFORM_POSITIONS[0].y - 20);
+this.player = new Player(
+  this,
+  PLATFORM_POSITIONS[0].x,
+  PLATFORM_POSITIONS[0].y - 30,
+{
+    up: 'player_up',
+    down: 'player_down',
+    left: 'player_left',
+    right: 'player_right'
+  },
+  {
+    up: 0.12,
+    down: 0.07,
+    left: 0.08,
+    right: 0.10
+  },
 
+{
+    up: { x: 0, y: -5 },
+    down: { x: 0, y: -1 },
+    left: { x: 0, y: -3 },
+    right: { x: 0, y: +3 }
+  }
+
+
+
+);
     this.arrowSystem = new ArrowSystem(this);
     this.sonarSystem = new SonarSystem(this);
-    this.flareSystem = new FlareSystem(this); // Initialize FlareSystem
+    this.flareSystem = new FlareSystem(this); 
     this.levelManager = new LevelManager();
 
     this.setupInputHandlers();
@@ -78,13 +108,25 @@ this.input.keyboard?.on('keydown-S', () => this.player.moveDown(this.platforms))
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!this.levelActive) return;
-      if (this.levelManager.getArrowsLeft() <= 0) return;
+  if (!this.levelActive) return;
+  if (this.levelManager.getArrowsLeft() <= 0) return;
 
-      this.levelManager.arrowShot();
-      this.arrowSystem.shoot(this.player.getPosition(), { x: pointer.x, y: pointer.y }, this.handleBalloonHit.bind(this));
-      this.updateUI();
-    });
+  this.levelManager.arrowShot();
+
+  const playerPos = this.player.getPosition();
+  const angle = Math.atan2(pointer.y - playerPos.y, pointer.x - playerPos.x);
+
+  // Update player sprite based on aiming
+  this.player.updateDirection(angle);
+
+  // Shoot arrow
+  this.arrowSystem.shoot(playerPos, { x: pointer.x, y: pointer.y }, this.handleBalloonHit.bind(this));
+  this.updateUI();
+});
+
+
+
+
   }
 
   public startLevel(): void {
@@ -151,6 +193,12 @@ this.input.keyboard?.on('keydown-S', () => this.player.moveDown(this.platforms))
     this.startLevel();
   });
 }
+
+
+
+
+
+
 
 
   private handleLevelFailed(): void {
