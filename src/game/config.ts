@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import MainScene from './scenes/MainScene';
+//import MainScene from './scenes/MainScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -23,7 +23,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     },
   },
 
-  scene: [MainScene],
+ // scene: [MainScene],
 };
 
 export const PLATFORM_POSITIONS = [
@@ -40,18 +40,20 @@ export interface LevelConfig {
   balloonCount: number;
   arrowCount: number;
   sonarRadius: number;
+  supersonarRadius: number;
 }
 
 export function getLevelConfig(level: number): LevelConfig {
   const baseBalloons = 3;
-  const baseArrows = 80;
-  const baseSonar = 800;
-
+  const baseArrows = 8;
+  const baseSonar = 250;
+  const supersonar = 800;
   return {
     level,
     balloonCount: baseBalloons + (level - 1),
     arrowCount: baseArrows + (level - 1) * 2,
     sonarRadius: Math.max(50, baseSonar - (level - 1) * 10),
+    supersonarRadius: supersonar,
   };
 }
 

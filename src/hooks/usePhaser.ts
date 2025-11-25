@@ -1,79 +1,85 @@
-import { useEffect, useRef, useState } from 'react';
-import Phaser from 'phaser';
-import { gameConfig } from '../game/config';
+import { useState, useEffect, useRef } from 'react';
+
 import MainScene from '../game/scenes/MainScene';
+import Phaser from 'phaser';
 
-interface GameState {
-  balloons: number;
-  arrows: number;
-  level: number;
-  message?: string;
-}
-
-export default function usePhaser() {
-  const gameRef = useRef<Phaser.Game | null>(null);
-  const [gameState, setGameState] = useState<GameState>({
+const usePhaser = () => {
+  const [gameState, setGameState] = useState({
     balloons: 0,
     arrows: 0,
     level: 1,
     message: '',
   });
 
-  const [gameOver, setGameOver] = useState<{ message: string; levelFailed: boolean } | null>(null);
+  const [gameOver, setGameOver] = useState<null | { message: string; levelFailed: boolean }>(null);
+  const [levelComplete, setLevelComplete] = useState(false);
 
+  const phaserGameRef = useRef<Phaser.Game | null>(null);
+  const phaserSceneRef = useRef<MainScene | null>(null); // ← store your scene here
+
+  // Initialize Phaser once
   useEffect(() => {
-    if (!gameRef.current) {
-      gameRef.current = new Phaser.Game(gameConfig);
+    if (!phaserGameRef.current) {
+      const config: Phaser.Types.Core.GameConfig = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        parent: 'game-container',
+        scene: MainScene,
+      };
 
-      gameRef.current.events.on('ready', () => {
-        const scene = gameRef.current?.scene.getScene('MainScene') as MainScene;
-        if (!scene) return;
+      const game = new Phaser.Game(config);
+      phaserGameRef.current = game;
 
-        // Update UI
-        scene.setUIUpdateCallback((data) => setGameState(data));
+      // Wait until scene is created to get reference
+      game.events.on('ready', () => {
+        const scene = game.scene.keys['MainScene'] as MainScene;
+        phaserSceneRef.current = scene;
 
-        // Level end callback
-        scene.setLevelEndCallback((success) => {
-          if (success) {
-            // Room cleared message
-            setGameState((prev) => ({ ...prev, message: 'Room Cleared!' }));
-            setTimeout(() => {
-              setGameState((prev) => ({ ...prev, message: '' }));
-              scene.levelManager.nextLevel();
-              scene.startLevel();
-            }, 1500); // show message 1.5s
-          } else {
-            // Out of arrows
-            setGameOver({ message: 'Out of Arrows! Try Again?', levelFailed: true });
-          }
+        // Set callbacks
+        scene.setUIUpdateCallback((data) => {
+          setGameState(prev => ({ ...prev, ...data }));
         });
+
+        scene.setLevelEndCallback(() => setGameOver({ message: 'Game Over', levelFailed: true }));
+
+        scene.setLevelCompleteUICallback(() => setLevelComplete(true));
       });
     }
-
-    return () => {
-      if (gameRef.current) {
-        gameRef.current.destroy(true);
-        gameRef.current = null;
-      }
-    };
   }, []);
 
-  const restartLevel = () => {
-    const scene = gameRef.current?.scene.getScene('MainScene') as MainScene;
-    if (!scene) return;
+  // Phaser functions
+  const nextLevel = () => {
+    setLevelComplete(false);
+    phaserSceneRef.current?.levelManager.nextLevel();
+    phaserSceneRef.current?.startLevel();
+  };
 
-    scene.startLevel();
+  const replayLevel = () => {
+    setLevelComplete(false);
+    phaserSceneRef.current?.restartLevel();
+  };
+
+  const restartLevel = () => {
     setGameOver(null);
+    phaserSceneRef.current?.restartLevel();
   };
 
   const newGame = () => {
-    const scene = gameRef.current?.scene.getScene('MainScene') as MainScene;
-    if (!scene) return;
-
-    scene.levelManager.resetGame();
-    scene.startLevel();
     setGameOver(null);
+    phaserSceneRef.current?.levelManager.resetLevel();
+    phaserSceneRef.current?.startLevel();
   };
 
-  return { gameState, gameOver, restartLevel, newGame };
-}
+  return {
+    gameState,
+    gameOver,
+    levelComplete,
+    nextLevel,
+    replayLevel,
+    restartLevel,
+    newGame,
+  };
+};
+
+export default usePhaser;

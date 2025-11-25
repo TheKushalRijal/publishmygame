@@ -74,13 +74,14 @@ this.player = new Player(
 );
     this.arrowSystem = new ArrowSystem(this);
     this.sonarSystem = new SonarSystem(this);
-    this.flareSystem = new FlareSystem(this); 
+    this.flareSystem = new FlareSystem(this); // Initialize FlareSystem
     this.levelManager = new LevelManager();
 
     this.setupInputHandlers();
     this.startLevel();
   }
 
+private superSonarUsed: boolean = false;
 
   private createPlatforms(): void {
     PLATFORM_POSITIONS.forEach(pos => {
@@ -127,6 +128,33 @@ this.input.keyboard?.on('keydown-S', () => this.player.moveDown(this.platforms))
 
 
 
+this.input.keyboard?.on('keydown-E', () => {
+  if (!this.levelActive) return;
+
+  if (this.superSonarUsed) {
+    return;
+  }
+
+  this.superSonarUsed = true;
+
+  const config = this.levelManager.getLevelConfig();
+
+  this.sonarSystem.activate(
+    this.player.getPosition(),
+    this.balloons,
+    this.platforms,
+    config.supersonarRadius
+  );
+});
+
+
+
+
+
+
+
+
+
   }
 
   public startLevel(): void {
@@ -136,7 +164,21 @@ this.input.keyboard?.on('keydown-S', () => this.player.moveDown(this.platforms))
     this.spawnBalloons();
     this.updateUI();
     this.backgroundSystem.setBackground(this.levelManager.getCurrentLevel() + 1);
+    this.superSonarUsed = false;
+
   }
+
+public restartLevel(): void {
+    this.levelActive = true;
+    this.clearLevel();
+    this.levelManager.resetLevel();
+    this.spawnBalloons();
+    this.updateUI();  
+
+}
+
+
+
 
   private spawnBalloons(): void {
     const config = this.levelManager.getLevelConfig();
@@ -167,38 +209,18 @@ this.input.keyboard?.on('keydown-S', () => this.player.moveDown(this.platforms))
   }
 
 
-  private handleLevelComplete(): void {
-  this.levelActive = false;
+  private onLevelCompleteUI?: () => void;
 
-  // Show "Room Cleared!" message in React UI
-  this.onUIUpdate?.({
-    balloons: this.levelManager.getBalloonsRemaining(),
-    arrows: this.levelManager.getArrowsLeft(),
-    level: this.levelManager.getCurrentLevel() + 1,
-    message: "Room Cleared!",
-  });
-
-  // Move to next level automatically after 2 seconds
-  this.time.delayedCall(2000, () => {
-    this.levelManager.nextLevel();
-
-    // Clear message before starting next level
-    this.onUIUpdate?.({
-      balloons: 0,
-      arrows: 0,
-      level: this.levelManager.getCurrentLevel() + 1,
-      message: "",
-    });
-
-    this.startLevel();
-  });
+setLevelCompleteUICallback(callback: () => void) {
+  this.onLevelCompleteUI = callback;
 }
 
+private handleLevelComplete(): void {
+  this.levelActive = false;
 
-
-
-
-
+  // Trigger React UI overlay for Level Complete
+  this.onLevelCompleteUI?.();
+}
 
 
   private handleLevelFailed(): void {
