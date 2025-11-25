@@ -80,6 +80,7 @@ const usePhaser = () => {
     restartLevel,
     newGame,
   };
+  
 };
 
 export default usePhaser;

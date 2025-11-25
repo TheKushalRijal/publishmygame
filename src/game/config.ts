@@ -6,12 +6,13 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
 
   /* 🔥 Let Phaser RESIZE dynamically inside iframe */
   scale: {
-  mode: Phaser.Scale.FIT,
+  mode: Phaser.Scale.RESIZE, // fit the canvas to parent size
   autoCenter: Phaser.Scale.CENTER_BOTH,
-  width: 800,
-  height: 600,
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: 'game-container',
 },
+
 
   backgroundColor: '#1a1a2e',
 

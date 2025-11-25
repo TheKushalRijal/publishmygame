@@ -31,14 +31,14 @@ const GameUI: React.FC<GameUIProps> = ({
         <div>Arrows: {arrows}</div>
         <div>Level: {level}</div>
       </div>
+<div className="absolute top-4 left-[700px] text-white text-xs space-y-1 z-50">
 
-<div className="absolute top-4 right-0 text-white text-xs leading-tight space-y-0.5 z-50 opacity-80">
-  <div>Space → Sonar</div>
-  <div>E → Super Sonar</div>
-  <div>W → Move Up</div>
-  <div>S → Move Down</div>
-  <div>Mouse → Shoot</div>
-</div>
+  <div>Space→Sonar</div>
+  <div>E→Super Sonar</div>
+  <div>W→Move Up</div>
+  <div>S→Move Down</div>
+  <div>Mouse→Shoot</div>
+      </div>
 
 
 
